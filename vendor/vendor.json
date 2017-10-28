@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "kwmM/w3OYiKonZ/+07Og1u4dZZc=",
+			"path": "github.com/soniah/gosnmp",
+			"revision": "90eb00b72db61f5fa9c57c96ea75f8a769cf86d1",
+			"revisionTime": "2017-10-11T17:32:46Z"
+		}
+	],
+	"rootPath": "github.com/ksang/gotopo"
+}

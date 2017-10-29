@@ -2,6 +2,7 @@ package lldp
 
 import (
 	"flag"
+	"fmt"
 	"testing"
 	"time"
 
@@ -27,7 +28,7 @@ func TestNewSNMPEndpoint(t *testing.T) {
 }
 
 func TestGetSnapshot(t *testing.T) {
-	if len(*addr) < 0 {
+	if len(*addr) <= 0 {
 		return
 	}
 	t.Logf("SNMP server address: %s", *addr)
@@ -36,7 +37,15 @@ func TestGetSnapshot(t *testing.T) {
 	dataCh, errCh := ep.Start()
 	select {
 	case ss := <-dataCh:
-		t.Logf("GetSnapshot: %#v", ss)
+		fmt.Printf("Snapshot.Local: ChassisId: %s, Name: %s, Description: %s\n",
+			ss.Local.ChassisId,
+			ss.Local.Name,
+			ss.Local.Description,
+		)
+		fmt.Printf("LocalPortTable:\n")
+		for _, entry := range ss.Local.PortTable {
+			fmt.Printf("\t%#v\n", entry)
+		}
 	case err := <-errCh:
 		t.Logf("GetSnapshot error: %v", err)
 	}

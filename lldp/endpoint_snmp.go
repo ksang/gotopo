@@ -13,7 +13,10 @@ var (
 	OIDChassisId   = "1.0.8802.1.1.2.1.3.2.0"
 	OIDName        = "1.0.8802.1.1.2.1.3.3.0"
 	OIDDescription = "1.0.8802.1.1.2.1.3.4.0"
-	// prefix OIDs
+	// root OIDs
+	OIDLocalPortTableNumber = "1.0.8802.1.1.2.1.3.7.1.1"
+	OIDLocalPortTableId     = "1.0.8802.1.1.2.1.3.7.1.3"
+	OIDLocalPortTableDesc   = "1.0.8802.1.1.2.1.3.7.1.4"
 )
 
 /*
@@ -43,7 +46,7 @@ func NewDefaultSNMPEndpoint(addr string) Endpoint {
 	ep := &SNMPEndpoint{
 		Address:   addr,
 		Port:      161,
-		Interval:  20 * time.Second,
+		Interval:  60 * time.Second,
 		Community: "public",
 		Version:   gosnmp.Version2c,
 		Timeout:   time.Duration(2) * time.Second,
@@ -134,11 +137,47 @@ func (s *SNMPEndpoint) getSnapshot() (*Snapshot, error) {
 			}
 		}
 	}
-	return &Snapshot{
+	ret := &Snapshot{
 		Local: LLDPLocalSystemData{
 			ChassisId:   chassisId,
 			Name:        name,
 			Description: desc,
 		},
-	}, nil
+	}
+	res2, err := s.snmp.WalkAll(OIDLocalPortTableNumber)
+	if err != nil {
+		return ret, err
+	}
+	localPortTable := []LLDPPortTableEntry{}
+	for _, v := range res2 {
+		if v.Type == gosnmp.Integer {
+			localPortTable = append(localPortTable, LLDPPortTableEntry{Number: v.Value.(int)})
+		}
+	}
+	ret.Local.PortTable = localPortTable
+	res3, err := s.snmp.WalkAll(OIDLocalPortTableId)
+	if err != nil {
+		return ret, err
+	}
+	for i, v := range res3 {
+		if i >= len(localPortTable) {
+			break
+		}
+		if v.Type == gosnmp.OctetString {
+			localPortTable[i].Id = string(v.Value.([]byte))
+		}
+	}
+	res4, err := s.snmp.WalkAll(OIDLocalPortTableDesc)
+	if err != nil {
+		return ret, err
+	}
+	for i, v := range res4 {
+		if i >= len(localPortTable) {
+			break
+		}
+		if v.Type == gosnmp.OctetString {
+			localPortTable[i].Description = string(v.Value.([]byte))
+		}
+	}
+	return ret, nil
 }

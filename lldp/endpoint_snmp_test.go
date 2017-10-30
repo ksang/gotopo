@@ -38,7 +38,7 @@ func TestGetSnapshot(t *testing.T) {
 	select {
 	case ss := <-dataCh:
 		fmt.Printf("Snapshot.Local: ChassisId: %s, Name: %s, Description: %s\n",
-			ss.Local.ChassisId,
+			ss.Local.ChassisID,
 			ss.Local.Name,
 			ss.Local.Description,
 		)

@@ -9,14 +9,18 @@ import (
 )
 
 var (
-	// exact OIDs
-	OIDChassisId   = "1.0.8802.1.1.2.1.3.2.0"
-	OIDName        = "1.0.8802.1.1.2.1.3.3.0"
+	// OIDChassisID is exact OID to get switch ChassisId
+	OIDChassisID = "1.0.8802.1.1.2.1.3.2.0"
+	// OIDName is exact OID to get switch Name
+	OIDName = "1.0.8802.1.1.2.1.3.3.0"
+	// OIDDescription is exact OID to get switch Description
 	OIDDescription = "1.0.8802.1.1.2.1.3.4.0"
-	// root OIDs
+	// OIDLocalPortTableNumber is root OID to get a subtree of port number
 	OIDLocalPortTableNumber = "1.0.8802.1.1.2.1.3.7.1.1"
-	OIDLocalPortTableId     = "1.0.8802.1.1.2.1.3.7.1.3"
-	OIDLocalPortTableDesc   = "1.0.8802.1.1.2.1.3.7.1.4"
+	// OIDLocalPortTableID is root OID to get a subtree of port id
+	OIDLocalPortTableID = "1.0.8802.1.1.2.1.3.7.1.3"
+	// OIDLocalPortTableDesc is root OID to get a subtree of port description
+	OIDLocalPortTableDesc = "1.0.8802.1.1.2.1.3.7.1.4"
 )
 
 /*
@@ -25,7 +29,7 @@ SNMPEndpoint is an LLDP endpoint using SNMP
 type SNMPEndpoint struct {
 	Address string
 	Port    uint16
-	// time interval for each time period of collecting data from endpoint
+	// sleep time interval after collecting data from endpoint
 	Interval  time.Duration
 	Community string
 	// SNMP version used, import "github.com/soniah/gosnmp" type SnmpVersion
@@ -41,7 +45,7 @@ type SNMPEndpoint struct {
 	quitCh chan struct{}
 }
 
-// Create SNMPEndpiont with default configurations
+// NewDefaultSNMPEndpoint create SNMPEndpiont with default configurations
 func NewDefaultSNMPEndpoint(addr string) Endpoint {
 	ep := &SNMPEndpoint{
 		Address:   addr,
@@ -56,6 +60,7 @@ func NewDefaultSNMPEndpoint(addr string) Endpoint {
 	return NewSNMPEndpoint(ep)
 }
 
+// NewSNMPEndpoint create SNMPEndpiont with provided configurations
 func NewSNMPEndpoint(ep *SNMPEndpoint) Endpoint {
 	ep.snmp = &gosnmp.GoSNMP{
 		Target:    ep.Address,
@@ -75,6 +80,7 @@ func NewSNMPEndpoint(ep *SNMPEndpoint) Endpoint {
 	return ep
 }
 
+// Start SNMPEndpoint collecting data snapshots
 func (s *SNMPEndpoint) Start() (chan *Snapshot, chan error) {
 	go func() {
 		defer func() {
@@ -105,6 +111,7 @@ func (s *SNMPEndpoint) Start() (chan *Snapshot, chan error) {
 	return s.dataCh, s.errCh
 }
 
+// Stop the SNMPEndpoint
 func (s *SNMPEndpoint) Stop() error {
 	s.quitCh <- struct{}{}
 	return nil
@@ -112,12 +119,12 @@ func (s *SNMPEndpoint) Stop() error {
 
 func (s *SNMPEndpoint) getSnapshot() (*Snapshot, error) {
 	exactOids := []string{
-		OIDChassisId,
+		OIDChassisID,
 		OIDName,
 		OIDDescription,
 	}
 	var (
-		chassisId string
+		chassisID string
 		name      string
 		desc      string
 	)
@@ -129,7 +136,7 @@ func (s *SNMPEndpoint) getSnapshot() (*Snapshot, error) {
 		if v.Type == gosnmp.OctetString {
 			switch i {
 			case 0:
-				chassisId = hex.EncodeToString(v.Value.([]byte))
+				chassisID = hex.EncodeToString(v.Value.([]byte))
 			case 1:
 				name = string(v.Value.([]byte))
 			case 2:
@@ -138,8 +145,8 @@ func (s *SNMPEndpoint) getSnapshot() (*Snapshot, error) {
 		}
 	}
 	ret := &Snapshot{
-		Local: LLDPLocalSystemData{
-			ChassisId:   chassisId,
+		Local: LocalSystemData{
+			ChassisID:   chassisID,
 			Name:        name,
 			Description: desc,
 		},
@@ -148,14 +155,14 @@ func (s *SNMPEndpoint) getSnapshot() (*Snapshot, error) {
 	if err != nil {
 		return ret, err
 	}
-	localPortTable := []LLDPPortTableEntry{}
+	localPortTable := []PortTableEntry{}
 	for _, v := range res2 {
 		if v.Type == gosnmp.Integer {
-			localPortTable = append(localPortTable, LLDPPortTableEntry{Number: v.Value.(int)})
+			localPortTable = append(localPortTable, PortTableEntry{Number: v.Value.(int)})
 		}
 	}
 	ret.Local.PortTable = localPortTable
-	res3, err := s.snmp.WalkAll(OIDLocalPortTableId)
+	res3, err := s.snmp.WalkAll(OIDLocalPortTableID)
 	if err != nil {
 		return ret, err
 	}
@@ -164,7 +171,7 @@ func (s *SNMPEndpoint) getSnapshot() (*Snapshot, error) {
 			break
 		}
 		if v.Type == gosnmp.OctetString {
-			localPortTable[i].Id = string(v.Value.([]byte))
+			localPortTable[i].ID = string(v.Value.([]byte))
 		}
 	}
 	res4, err := s.snmp.WalkAll(OIDLocalPortTableDesc)

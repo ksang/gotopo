@@ -7,18 +7,20 @@ package lldp
 Snapshot represents the data snapshot gatherred from a LLDP endpoint
 */
 type Snapshot struct {
-	Local LLDPLocalSystemData
+	Local LocalSystemData
 }
 
-type LLDPLocalSystemData struct {
-	ChassisId   string
+// LocalSystemData is the local lldp data structure
+type LocalSystemData struct {
+	ChassisID   string
 	Name        string
 	Description string
-	PortTable   []LLDPPortTableEntry
+	PortTable   []PortTableEntry
 }
 
-type LLDPPortTableEntry struct {
+// PortTableEntry is the porttable entry data structure
+type PortTableEntry struct {
 	Number      int
-	Id          string
+	ID          string
 	Description string
 }
